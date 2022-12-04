@@ -15,7 +15,12 @@ app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
-//expect to see a JSON string representing our entire urlDatabase obejct
+//visit: http://localhost:8080/urls.json --> expect to see a JSON string representing our entire urlDatabase obejct
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
+});
+
+//visit: http://localhost:8080/hello --> expect to see "Hello World"
+app.get("/hello", (req, res) => {
+  res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
