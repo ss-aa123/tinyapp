@@ -44,6 +44,10 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
 
+app.post("/urls", (req, res) => {
+  urlDatabase[req.params.id] = req.body.longURL 
+  res.redirect("/urls/:id"); 
+});
 
 app.get("/urls/:id", (req, res) => {
   const id = req.params.id;
@@ -51,10 +55,15 @@ app.get("/urls/:id", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
-app.post("/urls", (req, res) => {
-  console.log(req.body); // Log the POST request body to the console
-  res.send("Ok"); // Respond with 'Ok' (we will replace this)
+app.get("/u/:id", (req, res) => {
+  const longURL = urlDatabase[req.params.id]
+  res.redirect(longURL);
 });
 
 
+/* edge cases
+What would happen if a client requests a short URL with a non-existant id?
+What happens to the urlDatabase when the server is restarted?
+What type of status code do our redirects have? What does this status code mean?
+*/
  
