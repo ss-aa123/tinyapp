@@ -66,6 +66,14 @@ app.get("/u/:id", (req, res) => {
 });
 
 
+app.post("/urls/:id", (req,res) => {
+  urlDatabase[req.params.id] = req.body.updateLongURL
+  const templateVars = { id: req.params.id, longURL: req.body.longURL  };
+  res.render("urls_index", templateVars);
+
+  res.redirect("/urls");
+})
+
 
 /* edge cases
 What would happen if a client requests a short URL with a non-existant id?
