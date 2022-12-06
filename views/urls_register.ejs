@@ -16,38 +16,40 @@
     />
     <title>TinyApp</title>
   </head>
+
   <body>
     <%- include('partials/_header') %>
-
+    
     <main style="margin: 1em;">
-      <h3>My URLs</h3>
+      <h3>Registration</h3>
+
+      <form class="form-inline" action="/register" method="POST">
+          <label for="email">Email
+          <input
+            class="form-control"
+            type="email"
+            name="email"
+            placeholder="Enter email"
+            style="width: 300px; margin: 1em"
+          />
+          </label>
+
+          <label for="password">Password
+          <input
+            class="form-control"
+            type="password"
+            name="password"
+            placeholder="Enter password"
+            style="width: 300px; margin: 1em"
+          />
+        </label>
+          <button type="submit" class="btn btn-primary">Register</button>
+
+      </form>
+    </div>
 
 
-      <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">Short URL ID</th>
-            <th scope="col">Long URL</th>
 
-          </tr>
-        </thead>
-        <tbody>
-          <% for (let id in urls) { %>
-            <tr>
-              <td><%= id %></td>
-              <td><%= urls[id] %></td>
-                <form method="GET" action="/urls/<%= id%>">
-                  <td><button type="submit">Edit</button></td>                  
-                </form>             
-                <form method="POST" action="/urls/:id/delete">
-                  <td><button type="submit">Delete</button></td>
-                </form>
-            </tr>
-          <% } %>
-        </tbody>
-      </table>
-     <a href="#">Shorten URL</a> 
-     
 
     </main>
     <!-- Bootstrap JS -->
