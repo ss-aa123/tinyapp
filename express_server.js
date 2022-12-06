@@ -19,6 +19,15 @@ function generateRandomString() {
   return randoString;
 };
 
+function userLookup(key, value) {
+  for (let user in users) {
+    if (users[user].key === value) {
+      return true;
+    }
+  }
+  return false;
+}
+
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -121,6 +130,14 @@ app.get("/register", (req,res) => {
 });
 
 app.post("/register", (req,res) => {
+  
+  if (req.body.email === '' || req.body.password === '') {
+    res.status(400).send('Fill in all boxes please.');
+  }
+  if (userLookup(email, req.body.email)) {
+    res.status(400).send('Email already exists.');
+  }
+
   const user_id = generateRandomString();
   users[user_id] = {
     user_id,
