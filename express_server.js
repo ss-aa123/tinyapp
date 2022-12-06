@@ -9,14 +9,34 @@ app.set("view engine", "ejs")
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser())
 
-function generateRandomString() {}
+function generateRandomString() {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charactersLength = characters.length;
+  let randoString = "";
+  for (let i = 0; i < 6; i++ ) {
+    randoString += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return randoString;
+};
+
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
 
-
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -41,23 +61,26 @@ app.get("/hello", (req, res) => {
 
 //visit: http://localhost:8080/urls --> you see something on the page based on the template i guess
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase, username: req.cookies["username"]  };
+  //pass user object to urls_index template
+  let userID = req.cookies["user_id"]
+  const templateVars = { urls: urlDatabase, user: users[userID]  };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"]}
+  const templateVars = { user: users[req.cookies["user_id"]]}
   res.render("urls_new", templateVars);
 });
 
 app.post("/urls", (req, res) => {
   urlDatabase[req.params.id] = req.body.longURL 
+  id = generateRandomString();
   res.redirect("/urls/:id"); 
 });
 
 app.get("/urls/:id", (req, res) => {
   const id = req.params.id;
-  const templateVars = { id: id, longURL: urlDatabase[id], username: req.cookies["username"]  };
+  const templateVars = { id: id, longURL: urlDatabase[id], user: users[req.cookies["user_id"]]  };
   res.render("urls_show", templateVars);
 });
 
@@ -87,16 +110,27 @@ app.post("/login", (req,res) => {
 
 app.post("/logout", (req,res) => {
   res.clearCookie("username");
+  res.clearCookie(users[req.cookies["user_id"]])
   res.redirect("/urls");
 
 });
 
 app.get("/register", (req,res) => {
-  const templateVars = { email: req.body.email, password: req.body.password, username: req.cookies["username"]  };
+  const templateVars = { email: req.body.email, password: req.body.password, user: users[req.cookies["user_id"]] };
   res.render("urls_register", templateVars);
 });
 
-
+app.post("/register", (req,res) => {
+  const user_id = generateRandomString();
+  users[user_id] = {
+    user_id,
+    email: req.body.email,
+    password: req.body.password
+  };
+  res.cookie('user_id', user_id);
+  console.log(users)
+  res.redirect("/urls");
+});
 
 
 
