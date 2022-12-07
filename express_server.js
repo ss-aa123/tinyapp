@@ -1,5 +1,7 @@
 const cookieParser = require('cookie-parser')
 const express = require("express");
+const bcrypt = require('bcryptjs');
+
 
 const app = express();
 const PORT = 8080; // default port 8080
@@ -188,9 +190,10 @@ app.get("/login", (req,res) => {
 });
 
 app.post("/login", (req,res) => {
-  let user = (getUserByValue(req.body.email, users));
+  const user = getUserByValue(req.body.email, users);
+
     if (user && user.email === req.body.email ) {
-      if (user.password === req.body.password){
+      if (bcrypt.compareSync(req.body.password, user.password)) {
         res.cookie('user_id', user.user_id);
         res.redirect("/urls");
       } else {
@@ -198,7 +201,6 @@ app.post("/login", (req,res) => {
       }
     } else {
       res.status(403).send('Email cannot be found');
-
     }
 });
 
@@ -209,10 +211,10 @@ app.post("/logout", (req,res) => {
 });
 
 app.get("/register", (req,res) => {
-  if (user) {
+  if (req.cookies["user_id"]) {
     res.redirect("/urls");
   }
-  const templateVars = { email: req.body.email, password: req.body.password, user: users[req.cookies["user_id"]] };
+  const templateVars = { user: users[req.cookies["user_id"]] };
   res.render("urls_register", templateVars);
 });
 
@@ -226,15 +228,17 @@ app.post("/register", (req,res) => {
   if (user && user.email === req.body.email) {
     res.status(400).send('Email already exists.');
   } 
-    const user_id = generateRandomString();
-    users[user_id] = {
-      user_id,
-      email: req.body.email,
-      password: req.body.password
-    };
-    res.cookie('user_id', user_id);
-    console.log(users)
-    res.redirect("/urls");
+
+  const user_id = generateRandomString();
+  
+  users[user_id] = {
+    user_id,
+    email: req.body.email,
+    password: bcrypt.hashSync(req.body.password, 10)
+  };
+  res.cookie('user_id', user_id);
+  console.log(users)
+  res.redirect("/urls");
 });
 
 
