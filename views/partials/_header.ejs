@@ -19,16 +19,11 @@
       </div>
     </div>
      <% if (!user) { %>
-      <form class="form-inline" action="/login" method="POST">
-        <div>
-          <input 
-          type="text" 
-          name="username" 
-          placeholder="Username" >
-          <button type="submit" class="btn btn-primary">Login</button>
-        </div>
+      
+      <form class="form-inline" action="/login" method="GET">
+        <button type="submit" class="btn btn-primary">Login</button>
       </form>
-
+      
       <form class="form-inline" action="/register" method="GET">
         <button type="submit" class="btn btn-primary">Register</button>
       </form>
