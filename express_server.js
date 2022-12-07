@@ -11,7 +11,9 @@ const bcrypt = require('bcryptjs');
 app.set("view engine", "ejs");
 
 
-function generateRandomString() {
+const {getUserByEmail } = require('./helpers');
+
+const generateRandomString = function() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const charactersLength = characters.length;
   let randoString = "";
@@ -21,15 +23,9 @@ function generateRandomString() {
   return randoString;
 };
 
-function getUserByValue(emaill, database) {
-  for (let user in database) {
-    if (database[user].email === emaill) {
-      return database[user];
-    }
-  }
-}
 
-function urlsForUser(id, database) {
+
+const urlsForUser = function(id, database) {
   let usersUrls = {};
   for (let id in database) {
     if (database[id].userID === id) {
@@ -90,7 +86,7 @@ app.get("/hello", (req, res) => {
 //visit: http://localhost:8080/urls --> you see something on the page based on the template i guess
 app.get("/urls", (req, res) => {
   if (!req.session.user_id) {
-    //need to return an HTML with a relevant error message if the user is not logged in. something like "please log in or register first to see urls"
+    res.send("Please log in or register first to see the URLs");
     res.redirect('/login')
   }
   //pass user object to urls_index template
@@ -102,14 +98,12 @@ app.get("/urls", (req, res) => {
 
 app.post("/urls", (req, res) => {
   if (!req.session.user_id) {
-    const message = 'You do not have permission to shorten URLS';
-    res.status(403).send(message);
+    res.status(403).send('You do not have permission to shorten URLS');
   }
   const id = generateRandomString();
   urlDatabase[req.params.id] = req.body.longURL 
   res.redirect("/urls/:id"); 
 });
-
 
 app.get("/urls/new", (req, res) => {
   if (!req.session.user_id) {
@@ -120,46 +114,21 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-
-  //if not logged in, url pages isnt accessible
-  //if logged in but url page doesnt belong to them, its not accessible to them
   if (!urlDatabase[req.params.id]) {
-    const message = 'This url does not exist';
-    res.status(404).send(message);
+    res.status(404).send('This url does not exist');
   } else if (!req.session.user_id) {
-    const message = 'Please log in or register first';
-    res.status(401).send(message);
+    res.status(401).send('Please log in or register first');
   } else if (!userUrls[id]) {
-    const message = 'You don\'t have permission to see this';
-    res.status(403).send(message);
+    res.status(403).send('You don\'t have permission to see this');
   }
   const id = req.params.id;
   const templateVars = { id: id, longURL: urlDatabase[id].longURL, user: users[req.session.user_id]  };
   res.render("urls_show", templateVars);
 });
 
-app.post("/urls/:id/delete", (req,res) => {
-  const user = req.session.user_id;
-
-  if (!urlDatabase[req.params.id]) {
-    const message = 'This url does not exist';
-    res.status(404).send(message);
-  } else if (!req.session.user_id) {
-    const message = 'Please log in or register first';
-    res.status(401).send(message);
-  } else if (!userUrls[id]) {
-    const message = 'You don\'t have permission to see this';
-    res.status(403).send(message);
-  } else if (user && user === urlDatabase[id].userID) {
-    delete urlDatabase[req.params.id];
-    res.redirect("/urls");
-  }  
-})
-
 app.get("/u/:id", (req, res) => {
   if (!urlDatabase[req.params.id]) {
-    const message = 'This url does not exist';
-    res.status(404).send(message);
+    res.status(404).send('This url does not exist');
   }
   const longURL = urlDatabase[req.params.id];
   res.redirect(longURL); 
@@ -167,13 +136,11 @@ app.get("/u/:id", (req, res) => {
 
 app.post("/urls/:id", (req,res) => {
   if (!urlDatabase[req.params.id]) {
-    const message = 'This url does not exist';
-    res.status(404).send(message);
+    res.status(404).send('This url does not exist');
   } else if (!req.session.user_id) {
-    const message = 'Please log in or register first';
-    res.status(401).send(message);
+    res.status(401).send('Please log in or register first');
   } else if (!userUrls[id]) {
-    const message = 'You don\'t have permission to see this';
+    res.status(403).send('You don\'t have permission to see this');
     res.status(403).send(message);
   }
   urlDatabase[req.params.id] = req.body.updateLongURL
@@ -182,16 +149,33 @@ app.post("/urls/:id", (req,res) => {
 });
 
 
+app.post("/urls/:id/delete", (req,res) => {
+  const user = req.session.user_id;
+
+  if (!urlDatabase[req.params.id]) {
+    res.status(404).send('This url does not exist');
+  } else if (!req.session.user_id) {
+    res.status(401).send('Please log in or register first');
+  } else if (!userUrls[id]) {
+    res.status(403).send('You don\'t have permission to see this');
+  } else if (user && user === urlDatabase[id].userID) {
+    delete urlDatabase[req.params.id];
+    res.redirect("/urls");
+  }  
+})
+
+//Login / Logout
 app.get("/login", (req,res) => {
-  if (req.session.user_id) {
+  if (!req.session.user_id) {
+    const templateVars = { email: req.body.email, password: req.body.password, user: users[req.session.user_id] };
+    res.render("urls_login", templateVars);
+  } else {
     res.redirect("/urls");
   }
-  const templateVars = { email: req.body.email, password: req.body.password, user: users[req.session.user_id] };
-  res.render("urls_login", templateVars);
 });
 
 app.post("/login", (req,res) => {
-  const user = getUserByValue(req.body.email, users);
+  const user = getUserByEmail(req.body.email, users);
 
     if (user && user.email === req.body.email ) {
       if (bcrypt.compareSync(req.body.password, user.password)) {
@@ -205,63 +189,40 @@ app.post("/login", (req,res) => {
     }
 });
 
-
 app.post("/logout", (req,res) => {
   res.clearCookie("session")
+  res.clearCookie('session.sig');
   res.redirect("/login");
 });
 
+
+//Registration
 app.get("/register", (req,res) => {
-  if (req.session.user_id) {
+  if (!req.session.user_id) {
+    const templateVars = {email: req.body.email, password: req.body.password, user: users[req.session.user_id]};
+    res.render("urls_register", templateVars);
+  } else {
     res.redirect("/urls");
   }
-  const templateVars = { user: users[req.session.user_id] };
-  res.render("urls_register", templateVars);
 });
-
 
 app.post("/register", (req,res) => {
   if (req.body.email === '' || req.body.password === '') {
     res.status(400).send('Fill in all boxes please.');
-  }
-
-  const user = getUserByValue(req.body.email, users);
-  if (user && user.email === req.body.email) {
-    res.status(400).send('Email already exists.');
   } 
-
-  const user_id = generateRandomString();
-  
-  users[user_id] = {
-    user_id,
-    email: req.body.email,
-    password: bcrypt.hashSync(req.body.password, 10)
-  };
-  req.session.user_id = user_id;
-  console.log(users)
-  res.redirect("/urls");
+  if (getUserByEmail(req.body.email, users) === req.body.email ) {
+    res.status(400).send('Email already exists.');
+  } else {
+    const user_id = generateRandomString();
+    users[user_id] = {
+      user_id,
+      email: req.body.email,
+      password: bcrypt.hashSync(req.body.password, 10)
+    };
+    req.session.user_id = user_id;
+    res.redirect("/urls");
+  }
 });
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* edge cases
-What would happen if a client requests a short URL with a non-existant id?
-What happens to the urlDatabase when the server is restarted?
-What type of status code do our redirects have? What does this status code mean?
-*/
- 
