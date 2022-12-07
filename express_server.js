@@ -76,11 +76,18 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
+  if (!req.cookies["user_id"]) {
+    res.redirect('/login')
+  }
   const templateVars = { user: users[req.cookies["user_id"]]}
   res.render("urls_new", templateVars);
 });
 
 app.post("/urls", (req, res) => {
+  if (!req.cookies["user_id"]) {
+    const message = 'You do not have permission to do that';
+    res.status(403).send(message);
+  }
   urlDatabase[req.params.id] = req.body.longURL 
   id = generateRandomString();
   res.redirect("/urls/:id"); 
@@ -98,8 +105,12 @@ app.post("/urls/:id/delete", (req,res) => {
 })
 
 app.get("/u/:id", (req, res) => {
+  if (!urlDatabase[req.params.id]) {
+    const message = 'This url does not exist';
+    res.status(403).send(message);
+  }
   const longURL = urlDatabase[req.params.id];
-  res.redirect(longURL);
+  res.redirect(longURL); 
 });
 
 app.post("/urls/:id", (req,res) => {
@@ -110,6 +121,9 @@ app.post("/urls/:id", (req,res) => {
 
 
 app.get("/login", (req,res) => {
+  if (req.cookies["user_id"]) {
+    res.redirect("/urls");
+  }
   const templateVars = { email: req.body.email, password: req.body.password, user: users[req.cookies["user_id"]] };
   res.render("urls_login", templateVars);
 });
@@ -136,6 +150,9 @@ app.post("/logout", (req,res) => {
 });
 
 app.get("/register", (req,res) => {
+  if (user) {
+    res.redirect("/urls");
+  }
   const templateVars = { email: req.body.email, password: req.body.password, user: users[req.cookies["user_id"]] };
   res.render("urls_register", templateVars);
 });
