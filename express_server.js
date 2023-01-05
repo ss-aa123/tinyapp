@@ -36,11 +36,26 @@ const users = {
 };
 
 
+app.get("/", (req, res) => {
+  res.redirect("/login");
+});
+
+//clears session and redirects to login when logout button is clicked
+app.post("/logout", (req,res) => {
+  res.clearCookie("session")
+  res.clearCookie('session.sig');
+  res.redirect("/login");
+});
+app.get("/logout", (req, res) => {
+  res.clearCookie("session")
+  res.clearCookie('session.sig');
+  res.redirect("/login");
+});
 
 //displays user's urls page
 app.get("/urls", (req, res) => {
-  const userID = users[req.session.user_id];
-  if (!userID) {
+  const user = users[req.session.user_id];
+  if (!user) {
     return res.status(401).send(`
       <html>
         <body>Please <a href="http://localhost:8080/login">login</a> or <a href="http://localhost:8080/register">register</a> first to see the URLs</body>
@@ -48,18 +63,18 @@ app.get("/urls", (req, res) => {
       `);
   }
   //pass user object to urls_index template
-  const userUrls = urlsForUser(userID.id, urlDatabase);
-  const templateVars = { urls: userUrls, user:userID};
+  const userUrls = urlsForUser(user.id, urlDatabase);
+  const templateVars = { urls: userUrls, user: user};
   res.render("urls_index", templateVars);
 });
 
 //Registration
 app.get("/register", (req,res) => {
-  const userID = users[req.session.user_id];
-  if (userID) {
+  const user = users[req.session.user_id];
+  if (user) {
     return res.redirect("/urls");
   }else
-  res.render("urls_register", {user: userID});
+  res.render("urls_register", {user: user});
 });
 
 app.post("/register", (req,res) => {
@@ -76,7 +91,6 @@ app.post("/register", (req,res) => {
         <body>Email already exists!. Please <a href="http://localhost:8080/login">login</a> to see the URLs</body>
       </html>
     `);
-    
   } else {
     const user_id = generateRandomString();
     req.session.user_id = user_id;
@@ -89,9 +103,6 @@ app.post("/register", (req,res) => {
   }
 });
 
-app.get("/", (req, res) => {
-  res.redirect("/login");
-});
 
 app.get("/login", (req,res) => {
   const user = users[req.session.user_id]
@@ -104,7 +115,6 @@ app.get("/login", (req,res) => {
 
 app.post("/login", (req,res) => {
   const user = getUserByEmail(req.body.email, users);
-
     if (user) {
       let passWord = false;
       if (bcrypt.compareSync(req.body.password, user.password)) {
@@ -117,7 +127,7 @@ app.post("/login", (req,res) => {
           </html>
         `);
       } else {
-        req.session.user_id = user.user_id;
+        req.session.user_id = user_id;
         return res.redirect("/urls");
       }
    } else {
@@ -129,57 +139,34 @@ app.post("/login", (req,res) => {
       }
 });
 
-//clears session and redirects to login when logout button is clicked
-app.get("/logout", (req, res) => {
-  res.clearCookie("session")
-  res.clearCookie('session.sig');
-  res.redirect("/login");
+app.post("/urls/:id/delete", (req,res) => {
+  const user = users[req.session.user_id];
+  if (!user) {
+    return res.status(401).send(`
+    <html>
+      <body>This url may not exist or does not belong to you. Back to <a href="http://localhost:8080/login">login.</a></body>
+    </html>
+  `);
+  }
+    delete urlDatabase[req.params.id];
+    res.redirect("/urls");  
 });
-app.post("/logout", (req,res) => {
-  res.clearCookie("session")
-  res.clearCookie('session.sig');
-  res.redirect("/login");
-});
-
 
 app.post("/urls", (req, res) => {
-  const userID = users[req.session.user_id];
-  if (!req.session.user_id) {
-    return res.status(403).send(`
+  const user = users[req.session.user_id];
+  if (!user) {
+    return res.status(401).send(`
           <html>
-            <body>You do not have permission to shorten URLS   <a href="http://localhost:8080/login">Go back to login.</a></body>
+            <body>You do not have permission to shorten URLS.   Back to <a href="http://localhost:8080/login">login.</a></body>
           </html>
         `);
   }
   const shortID = generateRandomString();
   urlDatabase[shortID] = {
     longURL: req.body.longURL,
-    userId:  userID.id
+    userID:  user.user_id
   };
   res.redirect(`/urls/${shortID}`); 
-});
-
-
-app.get("/urls/:id", (req, res) => {
-  const user = users[req.session.user_id];
-  if (!user) {
-    return res.status(401).send('Please log in or register first');
-  }
-  if (user.id !== urlDatabase[req.params.id].userID) {
-    res.status(403).send('You don\'t have permission to see this');
-  }
-  const id = req.params.id;
-  const templateVars = { id: id, longURL: urlDatabase[id], user: user  };
-  res.render("urls_show", templateVars);
-});
-
-app.get("/u/:id", (req, res) => {
-  const user = users[req.session.user_id];
-  if (req.params.id === undefined) {
-    return res.status(404).send('This url does not exist');
-  }
-  const longURL = urlDatabase[req.params.id];
-  res.redirect(longURL); 
 });
 
 app.post("/urls/:id", (req,res) => {
@@ -196,20 +183,50 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new", templateVars);
 });
 
-app.post("/urls/:id/delete", (req,res) => {
-  const user = req.session.user_id;
+app.get("/urls/new", (req, res) => {
+  const templateVars = { urls: urlDatabase, user: users[req.session.user_id]}
+  const user = users[req.session.user_id];
+  if (!user) {
+    return res.redirect('/login')
+  }
+  res.render("urls_new", templateVars);
+});
 
-  if (!urlDatabase[req.params.id]) {
-    res.status(404).send('This url does not exist');
-  } else if (!req.session.user_id) {
-    res.status(401).send('Please log in or register first');
-  } else if (!userUrls[id]) {
-    res.status(403).send('You don\'t have permission to see this');
-  } else if (user && user === urlDatabase[id].userID) {
-    delete urlDatabase[req.params.id];
-    res.redirect("/urls");
-  }  
-})
+app.get("/urls/:id", (req, res) => {
+  const user = users[req.session.user_id];
+  if (!user) {
+    return res.status(401).send(`
+    <html>
+      <body>Please first <a href="http://localhost:8080/login">login.</a></body>
+    </html>
+  `);
+  }
+  if (user.user_id !== urlDatabase[req.params.user_id].userID) {
+    res.status(401).send(`
+    <html>
+      <body>You don\'t have permission to see this. Please first <a href="http://localhost:8080/login">login.</a></body>
+    </html>
+  `);
+  }
+  const id = req.params.user_id;
+  const templateVars = { id: id, longURL: urlDatabase[id], user: user  };
+  res.render("urls_show", templateVars);
+});
+
+app.get("/u/:id", (req, res) => {
+  const user = users[req.session.user_id];
+  if (req.params.id === undefined) {
+    return res.status(404).send('This url does not exist');
+  }
+  const templateVars = { urls: urlDatabase, user: user};
+  const longURL = urlDatabase[req.params.id].longURL;
+  res.redirect(longURL); 
+});
+
+
+
+
+
 
 
 
