@@ -18,11 +18,11 @@ const generateRandomString = function() {
   return randoString;
 };
 
-const urlsForUser = function(id, database) {
+const urlsForUser = function(userID, database) {
   let usersUrls = {};
-  for (let id in database) {
-    if (database[id].userID === id) {
-      usersUrls[id] = database[id];
+  for (const id in database) {
+    if (database[id].userID === userID) {
+      usersUrls[id] = database[id].longURL;
     }
   }
   return usersUrls;

@@ -35,11 +35,6 @@ const users = {
   },
 };
 
-
-app.get("/", (req, res) => {
-  res.redirect("/login");
-});
-
 //clears session and redirects to login when logout button is clicked
 app.post("/logout", (req,res) => {
   res.clearCookie("session")
@@ -49,6 +44,10 @@ app.post("/logout", (req,res) => {
 app.get("/logout", (req, res) => {
   res.clearCookie("session")
   res.clearCookie('session.sig');
+  res.redirect("/login");
+});
+
+app.get("/", (req, res) => {
   res.redirect("/login");
 });
 
@@ -78,7 +77,7 @@ app.get("/register", (req,res) => {
 });
 
 app.post("/register", (req,res) => {
-  if (req.body.email === '' || req.body.password === '') {
+  if (!req.body.email || !req.body.password) {
     return res.status(400).send(`
       <html>
         <body>Please fill in all boxes and <a href="http://localhost:8080/register">register</a> first to see the URLs</body>
@@ -183,15 +182,6 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new", templateVars);
 });
 
-app.get("/urls/new", (req, res) => {
-  const templateVars = { urls: urlDatabase, user: users[req.session.user_id]}
-  const user = users[req.session.user_id];
-  if (!user) {
-    return res.redirect('/login')
-  }
-  res.render("urls_new", templateVars);
-});
-
 app.get("/urls/:id", (req, res) => {
   const user = users[req.session.user_id];
   if (!user) {
@@ -202,32 +192,26 @@ app.get("/urls/:id", (req, res) => {
   `);
   }
   if (user.user_id !== urlDatabase[req.params.user_id].userID) {
-    res.status(401).send(`
+    return res.status(401).send(`
     <html>
       <body>You don\'t have permission to see this. Please first <a href="http://localhost:8080/login">login.</a></body>
     </html>
   `);
   }
   const id = req.params.user_id;
-  const templateVars = { id: id, longURL: urlDatabase[id], user: user  };
+  const templateVars = { user_id: id, longURL: urlDatabase[id], user: user  };
   res.render("urls_show", templateVars);
 });
 
 app.get("/u/:id", (req, res) => {
   const user = users[req.session.user_id];
-  if (req.params.id === undefined) {
+  if (req.params.user_id === undefined) {
     return res.status(404).send('This url does not exist');
   }
   const templateVars = { urls: urlDatabase, user: user};
   const longURL = urlDatabase[req.params.id].longURL;
   res.redirect(longURL); 
 });
-
-
-
-
-
-
 
 
 app.listen(PORT, () => {
