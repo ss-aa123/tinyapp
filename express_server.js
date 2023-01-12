@@ -29,7 +29,7 @@ const urlDatabase = {
 
 const users = {
   '1': {
-    user_id: "1",
+    id: "1",
     email: "1@1.com",
     password: "purple", 
   },
@@ -53,7 +53,7 @@ app.get("/", (req, res) => {
 
 //displays user's urls page
 app.get("/urls", (req, res) => {
-  const user = users[req.session.user_id];
+  const user = users[req.session['user_id']];
   if (!user) {
     return res.status(401).send(`
       <html>
@@ -69,7 +69,7 @@ app.get("/urls", (req, res) => {
 
 //Registration
 app.get("/register", (req,res) => {
-  const user = users[req.session.user_id];
+  const user = users[req.session['user_id']];
   if (user) {
     return res.redirect("/urls");
   }else
@@ -94,7 +94,7 @@ app.post("/register", (req,res) => {
     const user_id = generateRandomString();
     req.session.user_id = user_id;
     users[user_id] = {
-      user_id,
+      user_id : user_id,
       email: req.body.email,
       password: bcrypt.hashSync(req.body.password, 10)
     };
@@ -126,7 +126,7 @@ app.post("/login", (req,res) => {
           </html>
         `);
       } else {
-        req.session.user_id = user_id;
+        req.session['user_id'] = user.id;
         return res.redirect("/urls");
       }
    } else {
@@ -139,7 +139,7 @@ app.post("/login", (req,res) => {
 });
 
 app.post("/urls/:id/delete", (req,res) => {
-  const user = users[req.session.user_id];
+  const user = users[req.session['user_id']];
   if (!user) {
     return res.status(401).send(`
     <html>
@@ -152,7 +152,7 @@ app.post("/urls/:id/delete", (req,res) => {
 });
 
 app.post("/urls", (req, res) => {
-  const user = users[req.session.user_id];
+  const user = users[req.session['user_id']];
   if (!user) {
     return res.status(401).send(`
           <html>
@@ -163,19 +163,26 @@ app.post("/urls", (req, res) => {
   const shortID = generateRandomString();
   urlDatabase[shortID] = {
     longURL: req.body.longURL,
-    userID:  user.user_id
+    userID:  user.id
   };
   res.redirect(`/urls/${shortID}`); 
 });
 
 app.post("/urls/:id", (req,res) => {
+  const user = (users[req.session['user_id']]);
+  if (!user) {
+    return res.status(401).send(`
+    <html>
+      <body>Please go back to the <a href="http://localhost:8080/urls">urls</a> page.</body>
+    </html>`);
+  }
   urlDatabase[req.params.id].longURL = req.body.longURL;
   res.redirect("/urls");
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = { urls: urlDatabase, user: users[req.session.user_id]}
-  const user = users[req.session.user_id];
+  const templateVars = { urls: urlDatabase, user: users[req.session['user_id']]}
+  const user = users[req.session['user_id']];
   if (!user) {
     return res.redirect('/login')
   }
@@ -183,7 +190,7 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  const user = users[req.session.user_id];
+  const user = users[req.session['user_id']];
   if (!user) {
     return res.status(401).send(`
     <html>
@@ -191,21 +198,21 @@ app.get("/urls/:id", (req, res) => {
     </html>
   `);
   }
-  if (user.user_id !== urlDatabase[req.params.user_id].userID) {
+  if (user.id !== urlDatabase[req.params.id].userID) {
     return res.status(401).send(`
     <html>
       <body>You don\'t have permission to see this. Please first <a href="http://localhost:8080/login">login.</a></body>
     </html>
   `);
   }
-  const id = req.params.user_id;
-  const templateVars = { user_id: id, longURL: urlDatabase[id], user: user  };
+  const id = req.params.id;
+  const templateVars = { id: id, longURL: urlDatabase[id], user: user  };
   res.render("urls_show", templateVars);
 });
 
 app.get("/u/:id", (req, res) => {
-  const user = users[req.session.user_id];
-  if (req.params.user_id === undefined) {
+  const user = users[req.session['user_id']];
+  if (req.params.id === undefined) {
     return res.status(404).send('This url does not exist');
   }
   const templateVars = { urls: urlDatabase, user: user};
