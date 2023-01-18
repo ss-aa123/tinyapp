@@ -95,7 +95,7 @@ app.post("/register", (req,res) => {
     const user_id = generateRandomString();
     req.session.user_id = user_id;
     users[user_id] = {
-      user_id : user_id,
+      id : user_id,
       email: req.body.email,
       password: bcrypt.hashSync(req.body.password, salt)
     };
